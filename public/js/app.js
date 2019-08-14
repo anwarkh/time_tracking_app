@@ -3,14 +3,27 @@ class TimersDashboard extends React.Component {
         timers: []
     };
 
+    updateTimer = (newTimer) => {
+        const newTimersList = this.state.timers.map(timer => {
+            if (timer.id === newTimer.id) {
+                return newTimer;
+            }
+            return timer;
+        })
+
+        this.setState({
+            timers: newTimersList
+        })
+    }
+
     componentDidMount() {
         this.setState({
             timers: [
-                {id: "id1", title: "title1", project: "project1", time: "01:30:58", timerRunning : true},
-                {id: "id2", title: "title1", project: "project1", time: "01:30:57", timerRunning : true},
-                {id: "id3", title: "title1", project: "project1", time: "01:30:56", timerRunning : true},
-                {id: "id4", title: "title1", project: "project1", time: "01:30:55", timerRunning : true},
-                {id: "id5", title: "title1", project: "project1", time: "01:30:54", timerRunning : true}
+                {id: "id1", title: "title1", project: "project1", time: "01:30:58", timerRunning: false},
+                {id: "id2", title: "title1", project: "project1", time: "01:30:57", timerRunning: false},
+                {id: "id3", title: "title1", project: "project1", time: "01:30:56", timerRunning: false},
+                {id: "id4", title: "title1", project: "project1", time: "01:30:55", timerRunning: false},
+                {id: "id5", title: "title1", project: "project1", time: "01:59:54", timerRunning: false}
             ]
         });
     }
@@ -19,7 +32,7 @@ class TimersDashboard extends React.Component {
         return (
             <div className="ui three column centered grid">
                 <div className="column">
-                    <EditableTimerList list={this.state.timers}/>
+                    <EditableTimerList list={this.state.timers} updateTimer={this.updateTimer}/>
                     <ToggleableTimerForm/>
                 </div>
             </div>
@@ -30,10 +43,14 @@ class TimersDashboard extends React.Component {
 
 class EditableTimerList extends React.Component {
 
+    updateTimer = (newTimer) => {
+        this.props.updateTimer(newTimer)
+    }
+
     render() {
 
         const editableTimersComponents = this.props.list.map(
-            timer => <EditableTimer timer={timer} key={'timer' + timer.id}/>
+            timer => <EditableTimer timer={timer} key={'timer' + timer.id} updateTimer={this.updateTimer}/>
         );
         return (
             <div id="timers">
@@ -49,22 +66,20 @@ class EditableTimer extends React.Component {
         isFormOpen: false
     };
 
-    updateTimer = (timer) =>{
-
+    updateTimer = (newTimer) => {
+        this.props.updateTimer(newTimer)
     }
 
-    handleStartStop
 
     render() {
         if (this.state.isFormOpen) {
             return (<TimerForm/>)
         }
-        return (<Timer timer={this.props.timer} startStop={this.updateTimer}/>)
+        return (<Timer timer={this.props.timer} startStop={this.updateTimer} updateTimer={this.updateTimer}/>)
     }
 }
 
 class TimerForm extends React.Component {
-
     render() {
         return (
             <div className="ui centered card">
@@ -86,13 +101,11 @@ class TimerForm extends React.Component {
 class Timer extends React.Component {
 
 
-    handleStartStop = ()=>{
+    handleStartStopButton = () => {
+        this.props.updateTimer(Object.assign({}, this.props.timer, {
+            timerRunning: !this.props.timer.timerRunning,
+        }))
 
-
-    }
-
-    componentDidMount(){
-        this.state.timerRunning = this.this.props.timer.timerRunning
     }
 
 
@@ -102,7 +115,7 @@ class Timer extends React.Component {
                 <div className="content">
                     <div className="header">{this.props.timer.title}</div>
                     <div className="meta">{this.props.timer.project}</div>
-                    <div className="center aligned description"><h2>{this.props.timer.time}</h2></div>
+                    <div className="center aligned description"><DigitalClock timer={this.props.timer}/></div>
                     <div className="extra content">
                         <span className="right floated edit icon">
                             <i className="edit icon"></i>
@@ -112,9 +125,75 @@ class Timer extends React.Component {
                         </span>
                     </div>
                 </div>
-                <div className={"i bottom attached basic button " + this.props.timer.timerRunning ? 'red' : 'green'} onClick={this.handleStartStop}>{this.props.timer.timerRunning ? 'Stop' : 'Start'}</div>
+                <div className={'ui bottom attached basic button ' + (this.props.timer.timerRunning ? 'red' : 'green')}
+                     onClick={this.handleStartStopButton}>{this.props.timer.timerRunning ? 'Stop' : 'Start'}</div>
             </div>
         )
+    }
+}
+
+class DigitalClock extends React.Component {
+    state = {
+        time: new Date()
+    }
+
+
+    incrementTime = () => {
+        const time = this.state.time;
+        time.setSeconds(time.getSeconds() + 1);
+
+        return time;
+    }
+
+    parseDate = (input) => {
+        const parts = input.split(':')
+        let newDate = new Date()
+        newDate.setHours(parts[0])
+        newDate.setMinutes(parts[1])
+        newDate.setSeconds(parts[2])
+        return newDate
+    }
+
+    formatTime = (date) => {
+        let h = date.getHours(); // 0 - 23
+        let m = date.getMinutes(); // 0 - 59
+        let s = date.getSeconds(); // 0 - 59
+
+
+        h = (h < 10) ? "0" + h : h;
+        m = (m < 10) ? "0" + m : m;
+        s = (s < 10) ? "0" + s : s;
+
+        const time = h + ":" + m + ":" + s + " ";
+        return time;
+    }
+
+    componentWillReceiveProps(nextProps) {
+        if (nextProps.timer.timerRunning) {
+            this.interval = setInterval(() => this.setState({time: this.incrementTime()}), 1000);
+        }else{
+             clearInterval(this.interval);
+
+        }
+    }
+
+    componentDidMount() {
+        this.setState({
+            time: this.parseDate(this.props.timer.time)
+        })
+        if (this.props.timer.timerRunning) {
+            this.interval = setInterval(() => this.setState({time: this.incrementTime()}), 1000);
+        }
+    }
+
+    componentWillUnmount() {
+        if (this.interval) {
+            clearInterval(this.interval);
+        }
+    }
+
+    render() {
+        return (<h2>{this.formatTime(this.state.time)}</h2>)
     }
 }
 
