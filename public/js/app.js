@@ -16,13 +16,19 @@ class TimersDashboard extends React.Component {
         })
     }
 
+    handleCreateTimer = (newTimer) => {
+        this.setState({
+            timers: [...this.state.timers, newTimer]
+        })
+    }
+
     componentDidMount() {
         this.setState({
             timers: [
                 {id: "id1", title: "title1", project: "project1", time: "01:30:58", timerRunning: false},
                 {id: "id2", title: "title1", project: "project1", time: "01:30:57", timerRunning: false},
                 {id: "id3", title: "title1", project: "project1", time: "01:30:56", timerRunning: false},
-                {id: "id4", title: "title1", project: "project1", time: "01:30:55", timerRunning: false},
+                {id: "id4", title: "title1", project: "project1", time: "23:59:55", timerRunning: true},
                 {id: "id5", title: "title1", project: "project1", time: "01:59:54", timerRunning: false}
             ]
         });
@@ -33,7 +39,7 @@ class TimersDashboard extends React.Component {
             <div className="ui three column centered grid">
                 <div className="column">
                     <EditableTimerList list={this.state.timers} updateTimer={this.updateTimer}/>
-                    <ToggleableTimerForm/>
+                    <ToggleableTimerForm createTimer={this.handleCreateTimer}/>
                 </div>
             </div>
         )
@@ -80,16 +86,32 @@ class EditableTimer extends React.Component {
 }
 
 class TimerForm extends React.Component {
+
+    handleSaveClick = () => {
+        this.props.createTimer({
+            id: "id1",
+            title: "title1",
+            project: "project1",
+            time: "01:30:58",
+            timerRunning: false})
+    }
+
+
+    handleCancelClick = () => {
+        this.props.closeForm();
+    }
+
     render() {
         return (
             <div className="ui centered card">
                 <div className="content">
                     <div className="ui form">
-                        <div className="field"><label>Title</label><input type="text" value="Clear paper jam"/></div>
-                        <div className="field"><label>Project</label><input type="text" value="Office Chores"/></div>
+                        <div className="field"><label>Title</label><input type="text"/></div>
+                        <div className="field"><label>Project</label><input type="text"/></div>
                         <div className="ui two bottom attached buttons">
-                            <button className="ui basic blue button">Update</button>
-                            <button className="ui basic red button">Cancel</button>
+                            <button className="ui basic blue button"
+                                    onClick={this.handleSaveClick}>{this.props.mode === 'update' ? 'Update' : this.props.mode === 'create' ? 'Create' : ''}</button>
+                            <button className="ui basic red button" onClick={this.handleCancelClick}>Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -170,11 +192,12 @@ class DigitalClock extends React.Component {
 
     componentWillReceiveProps(nextProps) {
         if (nextProps.timer.timerRunning) {
+            clearInterval(this.interval);
             this.interval = setInterval(() => this.setState({time: this.incrementTime()}), 1000);
-        }else{
-             clearInterval(this.interval);
-
+        } else {
+            clearInterval(this.interval);
         }
+
     }
 
     componentDidMount() {
@@ -187,9 +210,7 @@ class DigitalClock extends React.Component {
     }
 
     componentWillUnmount() {
-        if (this.interval) {
-            clearInterval(this.interval);
-        }
+        clearInterval(this.interval);
     }
 
     render() {
@@ -199,20 +220,40 @@ class DigitalClock extends React.Component {
 
 
 class ToggleableTimerForm extends React.Component {
+    state = {
+        isFormOpen: false
+    }
 
-    plusSign() {
-        return true
+    isFormOpen() {
+        return this.state.isFormOpen
+    }
+
+    handlePlusButtonClick = () => {
+        this.setState({
+            isFormOpen: true
+        })
+    }
+
+    handleCloseForm = () => {
+        this.setState({
+            isFormOpen: false
+        })
+    }
+
+    handleSaveForm = () => {
+
     }
 
     render() {
-        if (this.plusSign()) {
+        if (!this.isFormOpen()) {
             return (
                 <div className="ui basic content center aligned segment">
-                    <button className="ui basic button icon"><i className="plus icon"></i></button>
+                    <button className="ui basic button icon" onClick={this.handlePlusButtonClick}><i
+                        className="plus icon"></i></button>
                 </div>)
         } else {
             return (
-                <TimerForm/>
+                <TimerForm mode='create' closeForm={this.handleCloseForm} saveForm={this.handleSaveForm}/>
             )
         }
     }
